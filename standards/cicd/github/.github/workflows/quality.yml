@@ -1,0 +1,69 @@
+# Pipeline de qualidade e segurança — GitHub Actions
+# Objetivo: impedir que código sem build, testes ou checagens mínimas de segurança avance.
+# Dispara em PR e push na main.
+
+name: quality-gates
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test-scan:
+    runs-on: ubuntu-latest # agente hospedado
+    steps:
+      # 1) Checkout do código-fonte
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Setup .NET 8 (para projetos C#)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3) Setup Python 3.11 (para ferramentas de segurança e utilitários)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 4) Build .NET (só se houver .csproj no repo)
+      - name: Build (.NET)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+
+      # 5) Testes unitários .NET (só se houver .csproj)
+      - name: Tests (.NET)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+
+      # 6) SAST — análise estática de segurança com Semgrep
+      - name: SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+
+      # 7) SCA — scan de dependências vulneráveis com Trivy
+      - name: SCA (Trivy)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      # 8) SBOM — gera Software Bill of Materials (CycloneDX)
+      - name: SBOM (CycloneDX)
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py -o sbom-python.json || true
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet tool install --global CycloneDX --version 1.7.4 || true; fi
+          if ls **/*.csproj 1> /dev/null 2>&1; then ~/.dotnet/tools/dotnet-CycloneDX -o sbom-dotnet.json || true; fi
+
+      # 9) Publica artefatos de interesse do PR (opcional)
+      - name: Upload SBOMs
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms
+          path: |
+            sbom-python.json
+            sbom-dotnet.json
+          if-no-files-found: ignore

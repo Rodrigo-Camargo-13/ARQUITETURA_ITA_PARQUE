@@ -1,0 +1,45 @@
+# Pipeline de qualidade — GitLab CI
+# Stages simples: build, test, scan
+stages: [build, test, scan]
+
+variables:
+  DOTNET_VERSION: "8.0"
+
+# Build .NET somente se houver .csproj
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# Testes .NET
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+  needs: [build]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# SAST — Semgrep
+sast:
+  stage: scan
+  image: returntocorp/semgrep
+  script:
+    - semgrep ci
+  needs: [test]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_PIPELINE_SOURCE == "merge_request_event"'
+
+# SCA — Trivy filesystem scan
+sca:
+  stage: scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+  needs: [test]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_PIPELINE_SOURCE == "merge_request_event"'

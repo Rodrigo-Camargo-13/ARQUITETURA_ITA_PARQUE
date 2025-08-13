@@ -1,19 +1,24 @@
 # ARQUITETURA_ITA_PARQUE
 
-Repositório institucional de **arquiteturas de referência**, **padrões/boas práticas**, **matriz de tecnologias** e **governança técnica** do Hub de Tecnologia (Itaipu Parquetec).
-
-## Objetivo
-Padronizar decisões técnicas, acelerar entregas com qualidade e garantir NFRs (segurança, desempenho, confiabilidade, observabilidade e custo) desde o primeiro commit.
+Repositório institucional com:
+- Arquiteturas de referência (C4, ADR, blueprints)
+- Guia de padrões/boas práticas (linguagens/plataformas)
+- Matriz de tecnologias homologadas
+- Governança técnica (checklists, rituais, CODEOWNERS)
+- Pipelines de qualidade (SAST/SCA/SBOM)
 
 ## Como usar
-1. Consulte `matriz-tecnologias/matriz.md` para tecnologias homologadas.
-2. Use `reference-architectures/*` como blueprint para novas soluções.
-3. Aplique `standards/*` (linguagem/plataforma) e `governance/*` (processo/checklists).
-4. Habilite a pipeline em `cicd/` (GitHub, GitLab, Drone ou Azure DevOps).
+1. Consulte `matriz-tecnologias/matriz.md` para saber o que é homologado.
+2. Comece por um blueprint em `reference-architectures/`.
+3. Aplique padrões de `standards/` (Java, .NET, Python, Front-end, Segurança, Testes, CI/CD).
+4. Submeta proposta via `governance/processo-validacao-tecnica.md` + checklists.
+
+## Pipelines
+- GitHub: `cicd/github/.github/workflows/quality.yml`
+- Azure DevOps: `cicd/azure/azure-pipelines.yml`
+- GitLab CI: `cicd/gitlab/.gitlab-ci.yml`
+- Drone CI: `cicd/drone/.drone.yml`
 
 ## Governança
-- Processo de validação técnica: `governance/processo-validacao-tecnica.md`.
-- Rituais de comitê técnico e revisão trimestral da matriz: `governance/comite-tecnico-rituais.md`.
-
-## Contribuição
-Leia `CONTRIBUTING.md`, `CODEOWNERS` e siga os templates em `templates/`.
+- Rituais de comitê técnico e revisão trimestral da matriz.
+- ADR para decisões relevantes (templates em `templates/`).

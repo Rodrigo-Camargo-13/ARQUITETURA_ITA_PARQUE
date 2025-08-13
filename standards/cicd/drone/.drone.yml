@@ -1,0 +1,33 @@
+# Pipeline de qualidade — Drone CI
+# Executa build/test (quando existir .NET), depois SAST e SCA.
+kind: pipeline
+type: docker
+name: quality
+
+steps:
+- name: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  commands:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+
+- name: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  commands:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+
+- name: sast
+  image: returntocorp/semgrep
+  commands:
+    - semgrep ci
+
+- name: sca
+  image: aquasec/trivy:latest
+  commands:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+    - pull_request

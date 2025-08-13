@@ -1,0 +1,51 @@
+# Pipeline de Build/Test/Security — Azure DevOps
+# Gatilho: qualquer push na main
+trigger:
+- main
+
+# Agente hospedado Ubuntu
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+# 1) Instala SDK .NET 8.x (para compilar e testar projetos C#)
+- task: UseDotNet@2
+  inputs:
+    packageType: 'sdk'
+    version: '8.0.x'
+
+# 2) Build (só se houver projetos .NET)
+- script: |
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+  displayName: Build (.NET)
+
+# 3) Testes unitários (sem rebuild)
+- script: |
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+  displayName: Tests (.NET)
+
+# 4) SAST — Semgrep
+- script: |
+    pip3 install --upgrade pip
+    pip3 install semgrep
+    semgrep ci
+  displayName: SAST (Semgrep)
+
+# 5) SCA — Trivy (dependências vulneráveis)
+- script: |
+    sudo apt-get update -y
+    sudo apt-get install -y wget
+    wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+    echo deb https://aquasecurity.github.io/trivy-repo/deb stable main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+    sudo apt-get update -y
+    sudo apt-get install -y trivy
+    trivy fs --exit-code 1 --severity HIGH,CRITICAL .
+  displayName: SCA (Trivy)
+
+# 6) SBOM — CycloneDX (exemplo para Python e .NET)
+- script: |
+    pip3 install cyclonedx-bom
+    cyclonedx-py -o sbom-python.json || true
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet tool install --global CycloneDX --version 1.7.4 || true; fi
+    if ls **/*.csproj 1> /dev/null 2>&1; then ~/.dotnet/tools/dotnet-CycloneDX -o sbom-dotnet.json || true; fi
+  displayName: SBOM (CycloneDX)
