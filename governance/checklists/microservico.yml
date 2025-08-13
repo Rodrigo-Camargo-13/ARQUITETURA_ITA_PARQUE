@@ -1,0 +1,14 @@
+# Blueprint para criação de novos microserviços
+nome: exemplo-servico
+linguagem: dotnet
+versaoFramework: 8.0
+padrãoAPI: OpenAPI 3.0.3
+bancoDados: PostgreSQL
+mensageria: Kafka
+observabilidade:
+  tracing: OpenTelemetry
+  logs: padrao-institucional
+  métricas: Prometheus
+seguranca:
+  autenticacao: OAuth2
+  autorizacao: RBAC

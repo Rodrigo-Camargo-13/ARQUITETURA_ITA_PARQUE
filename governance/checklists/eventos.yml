@@ -1,0 +1,15 @@
+# Catálogo de eventos padronizados
+- nome: PedidoCriado
+  canal: pedidos/criado
+  versão: 1.0.0
+  descrição: Evento publicado quando um pedido é criado.
+  payload:
+    idPedido: string
+    dataCriacao: datetime
+- nome: PedidoCancelado
+  canal: pedidos/cancelado
+  versão: 1.0.0
+  descrição: Evento publicado quando um pedido é cancelado.
+  payload:
+    idPedido: string
+    motivo: string

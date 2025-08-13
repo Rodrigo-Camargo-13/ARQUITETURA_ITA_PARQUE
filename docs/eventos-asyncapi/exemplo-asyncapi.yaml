@@ -1,0 +1,23 @@
+asyncapi: '2.4.0'
+info:
+  title: Exemplo de Eventos de Pedido
+  version: 1.0.0
+  description: Eventos de pedidos emitidos no broker institucional.
+channels:
+  pedidos/criado:
+    subscribe:
+      summary: Evento emitido quando um pedido é criado
+      message:
+        $ref: '#/components/messages/PedidoCriado'
+components:
+  messages:
+    PedidoCriado:
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          idPedido:
+            type: string
+          dataCriacao:
+            type: string
+            format: date-time
