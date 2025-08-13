@@ -20,3 +20,9 @@
 - Esquema validado e publicado; limiares de profundidade/custo configurados.
 - Testes E2E e de contrato por operação importante.
 - Tracing por resolver e alarmes por p95 de operação.
+
+## Limites de produção
+- Profundidade máx (ex.: 8) e custo por campo (ex.: 100).
+- Persisted Queries habilitadas.
+## Autorização granular
+- Diretiva `@auth(scope: "orders:read")` por campo/tipo.

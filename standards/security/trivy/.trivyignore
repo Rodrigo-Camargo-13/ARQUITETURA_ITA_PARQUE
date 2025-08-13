@@ -1,0 +1,2 @@
+# Exemplos (descrever motivo em PR):
+# CVE-2023-XXXXX pacote-x.y.z  -> falso positivo na distro base

@@ -1,0 +1,13 @@
+rules:
+  - id: generic-no-secrets
+    patterns:
+      - pattern-regex: (?i)(api_key|secret|password|token|authorization)\\s*[:=]\\s*["'][A-Za-z0-9_\\-\\/\\+=]{10,}["']
+    message: Possível segredo em código.
+    severity: ERROR
+    languages: [generic]
+  - id: dotnet-httpclient-timeout
+    message: Configure timeout no HttpClient (.NET).
+    severity: WARNING
+    languages: [csharp]
+    patterns:
+      - pattern: new HttpClient()

@@ -18,3 +18,5 @@
 - AsyncAPI publicado e testado; key metrics por tópico.
 - Consumidores com `eventId` e deduplicação.
 - Runbook de reprocessamento e auditoria.
+- `eventId` (UUID) obrigatório; consumidores deduplicam por `eventId`.
+- DLQ com TTL e reprocessamento manual documentado no runbook.
