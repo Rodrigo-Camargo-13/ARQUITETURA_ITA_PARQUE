@@ -1,0 +1,52 @@
+asyncapi: '2.6.0'
+info:
+  title: Eventos do Domínio de Pagamentos
+  version: '1.0.0'
+  description: >
+    Especificação AsyncAPI para eventos de pagamentos publicados no broker corporativo (Kafka/Event Hubs).
+defaultContentType: application/json
+servers:
+  prod:
+    url: kafka://broker:9092
+    protocol: kafka
+channels:
+  pagamentos.fatura.criada.v1:
+    description: Evento emitido quando uma fatura é criada.
+    subscribe:
+      message:
+        $ref: '#/components/messages/FaturaCriada'
+  pagamentos.fatura.paga.v1:
+    description: Evento emitido quando uma fatura é confirmada como paga.
+    subscribe:
+      message:
+        $ref: '#/components/messages/FaturaPaga'
+components:
+  messages:
+    FaturaCriada:
+      name: FaturaCriada
+      title: Fatura criada
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, occurredAt, faturaId, clienteId, valor, moeda]
+        properties:
+          eventId: { type: string, format: uuid }
+          occurredAt: { type: string, format: date-time }
+          schemaVersion: { type: string, default: '1.0.0' }
+          faturaId: { type: string }
+          clienteId: { type: string }
+          valor: { type: number }
+          moeda: { type: string, minLength: 3, maxLength: 3 }
+    FaturaPaga:
+      name: FaturaPaga
+      title: Fatura paga
+      contentType: application/json
+      payload:
+        type: object
+        required: [eventId, occurredAt, faturaId, formaPagamento]
+        properties:
+          eventId: { type: string, format: uuid }
+          occurredAt: { type: string, format: date-time }
+          schemaVersion: { type: string, default: '1.0.0' }
+          faturaId: { type: string }
+          formaPagamento: { type: string, enum: [PIX, CARTAO, BOLETO] }
