@@ -1,0 +1,35 @@
+name: quality-gates
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  build-test-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build (if .NET present)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+      - name: Tests (if .NET present)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+      - name: SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+      - name: SCA (Trivy)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+      - name: SBOM (CycloneDX)
+        run: |
+          pip install cyclonedx-bom && cyclonedx-py -o sbom.json || true

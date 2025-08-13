@@ -1,0 +1,7 @@
+itens:
+  - openapi_versionado
+  - padrao_erros
+  - rate_limit
+  - oidc_oidc
+  - observabilidade_otlp
+  - testes_contrato

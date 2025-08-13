@@ -1,0 +1,5 @@
+*       @arquitetura-ita-parque-core
+/reference-architectures/ @arquitetura-ita-parque-arch
+/standards/               @arquitetura-ita-parque-arch
+/cicd/                     @arquitetura-ita-parque-devops
+/governance/               @arquitetura-ita-parque-arch

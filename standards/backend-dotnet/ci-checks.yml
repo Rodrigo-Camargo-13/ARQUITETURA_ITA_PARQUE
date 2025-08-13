@@ -1,0 +1,5 @@
+checks:
+  - dotnet_build: "dotnet build -c Release"
+  - unit_tests: "dotnet test -c Release /p:CollectCoverage=true"
+  - sast: "semgrep ci"
+  - sca: "trivy fs --exit-code 1 --severity CRITICAL,HIGH ."

@@ -1,0 +1,19 @@
+stages: [build, test, scan]
+variables:
+  DOTNET_VERSION: "8.0"
+build:
+  stage: build
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+
+test:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  script:
+    - if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+
+sast:
+  stage: scan
+  image: returntocorp/semgrep
+  script: ["semgrep ci"]
