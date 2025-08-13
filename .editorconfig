@@ -1,0 +1,45 @@
+# EditorConfig ajuda a manter estilo consistente entre IDEs/editores
+root = true
+
+# Padrões gerais
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+trim_trailing_whitespace = true
+
+# Markdown: manter espaços à direita em listas/código
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# YAML/JSON
+[*.{yml,yaml,json}]
+indent_size = 2
+
+# JavaScript/TypeScript/TSX/JSX
+[*.{js,ts,jsx,tsx}]
+indent_size = 2
+
+# Python (PEP 8)
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+# C# (.NET)
+[*.{cs,csx}]
+indent_size = 4
+csharp_new_line_before_open_brace = all
+
+# Java
+[*.java]
+indent_size = 4
+
+# Dockerfile
+[Dockerfile]
+indent_size = 2
+
+# Git-related
+[*.git*]
+end_of_line = lf

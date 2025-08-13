@@ -1,0 +1,29 @@
+# Força normalização de fim de linha (LF) em texto
+* text=auto eol=lf
+
+# Arquivos considerados binários (sem diff)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.ico binary
+*.svg binary
+
+# Linguagens e diffs amigáveis
+*.md     diff=markdown
+*.mmd    text
+*.cs     diff=csharp
+*.java   text
+*.py     text
+*.ts     text
+*.tsx    text
+*.js     text
+*.json   text
+*.yml    text
+*.yaml   text
+
+# Evita exportar diretórios de CI em tarballs (opcional)
+cicd/ export-ignore
+
+# Mantém desempenho ao ignorar grandes arquivos binários (ajuste conforme necessário)
