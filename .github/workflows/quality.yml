@@ -1,0 +1,130 @@
+# Pipeline de qualidade e segurança — GitHub Actions
+# Objetivo: impedir que código sem build, testes ou checagens mínimas de segurança avance.
+# Dispara em PR e em push na branch main. Inclui build/test (.NET), SAST (Semgrep),
+# SCA (Trivy), validação de contratos (OpenAPI/AsyncAPI) e geração de SBOM (CycloneDX).
+
+name: quality-gates
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+# Evita filas longas e resultados obsoletos: cancela execução anterior da mesma ref
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: true
+
+# Princípio do menor privilégio
+permissions:
+  contents: read
+
+jobs:
+  build-test-scan:
+    runs-on: ubuntu-latest # agente hospedado
+
+    steps:
+      # 1) Checkout do código-fonte
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2) Setup .NET 8 (para projetos C#)
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # 3) Cache de pacotes NuGet (acelera build .NET quando houver .csproj)
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # 4) Setup Python 3.11 (ferramentas de segurança e utilitários)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      # 5) Setup Node.js (validadores OpenAPI e AsyncAPI via npm)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 6) Restore (quando houver .NET) — opcional mas ajuda no cache
+      - name: Restore (.NET)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet restore; fi
+
+      # 7) Build .NET (só se houver .csproj no repo)
+      - name: Build (.NET)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release --no-restore; fi
+
+      # 8) Testes unitários .NET (só se houver .csproj)
+      - name: Tests (.NET)
+        run: |
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build --collect:"XPlat Code Coverage"; fi
+
+      # 9) SAST — análise estática de segurança com Semgrep
+      - name: SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          generateSarif: true
+        env:
+          SEMGREP_RULES: >-
+            p/default # usa baseline pública; substitua por caminho do repo se tiver regras próprias
+
+      # 10) SCA — scan de dependências vulneráveis com Trivy (filesystem)
+      - name: SCA (Trivy)
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          format: table
+          exit-code: '1' # falha o job se encontrar HIGH/CRITICAL
+
+      # 11) Validar OpenAPI (se houver contratos em docs/apis-openapi/)
+      - name: Validate OpenAPI
+        run: |
+          npm i -g @redocly/cli
+          if ls docs/apis-openapi/**/*.y?(a)ml 1> /dev/null 2>&1; then redocly lint docs/apis-openapi/**/*.y?(a)ml; fi
+
+      # 12) Validar AsyncAPI (se houver contratos em docs/eventos-asyncapi/)
+      - name: Validate AsyncAPI
+        run: |
+          npm i -g @asyncapi/cli
+          if ls docs/eventos-asyncapi/**/*.y?(a)ml 1> /dev/null 2>&1; then asyncapi validate docs/eventos-asyncapi/**/*.y?(a)ml; fi
+
+      # 13) SBOM — gera Software Bill of Materials (CycloneDX) para Python e .NET
+      - name: SBOM (CycloneDX)
+        run: |
+          mkdir -p artifacts/sbom
+          pip install cyclonedx-bom
+          cyclonedx-py -o artifacts/sbom/sbom-python.json || true
+          if ls **/*.csproj 1> /dev/null 2>&1; then dotnet tool install --global CycloneDX --version 1.7.4 || true; fi
+          if ls **/*.csproj 1> /dev/null 2>&1; then ~/.dotnet/tools/dotnet-CycloneDX -o artifacts/sbom/sbom-dotnet.json || true; fi
+
+      # 14) Publica artefatos úteis no PR (SBOMs e, se houver, resultados do Semgrep SARIF)
+      - name: Upload artifacts (SBOMs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sboms
+          path: |
+            artifacts/sbom/sbom-python.json
+            artifacts/sbom/sbom-dotnet.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # 15) (Opcional) Publicar SARIF do Semgrep em "Code scanning alerts"
+      #     Requer permissões extras: security-events: write
+      # - name: Upload Semgrep SARIF
+      #   if: always()
+      #   uses: github/codeql-action/upload-sarif@v3
+      #   with:
+      #     sarif_file: semgrep.sarif
