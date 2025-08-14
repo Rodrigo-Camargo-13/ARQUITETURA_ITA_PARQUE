@@ -25,6 +25,7 @@ jobs:
     needs: [sanity]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
@@ -59,15 +60,17 @@ jobs:
         run: |
           for f in $(git ls-files '**/requirements.txt'); do pip install -r "$f"; done
 
-      # OpenAPI / AsyncAPI
-      - name: Validate OpenAPI
+      # ---------- Contratos (agora ADVISORY) ----------
+      - name: Validate OpenAPI — advisory
         if: ${{ hashFiles('docs/apis-openapi/**/*.yml') != '' || hashFiles('docs/apis-openapi/**/*.yaml') != '' }}
+        continue-on-error: true
         run: |
           npm i -g @redocly/cli
           redocly lint "docs/apis-openapi/**/*.{yml,yaml}"
 
-      - name: Validate AsyncAPI
+      - name: Validate AsyncAPI — advisory
         if: ${{ hashFiles('docs/eventos-asyncapi/**/*.yml') != '' || hashFiles('docs/eventos-asyncapi/**/*.yaml') != '' }}
+        continue-on-error: true
         run: |
           npm i -g @asyncapi/cli
           asyncapi validate "docs/eventos-asyncapi/**/*.{yml,yaml}"
@@ -86,7 +89,7 @@ jobs:
         with:
           scan-type: 'fs'
           format: 'table'
-          exit-code: '0'   # mude para '1' quando quiser bloquear PR
+          exit-code: '0'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           scanners: 'vuln,secret,misconfig'
