@@ -102,20 +102,53 @@ jobs:
             pip install -r "$f"
           done
 
-      # ---------- Contratos (advisory) ----------
+      # ---------- OpenAPI (advisory; robusto) ----------
       - name: Validate OpenAPI — advisory
-        if: ${{ hashFiles('docs/apis-openapi/**/*.yml') != '' || hashFiles('docs/apis-openapi/**/*.yaml') != '' }}
+        if: ${{ hashFiles('docs/apis-openapi/**/*.yml','docs/apis-openapi/**/*.yaml','reference-architectures/api/**/*.yml','reference-architectures/api/**/*.yaml') != '' }}
         continue-on-error: true
+        shell: bash
         run: |
+          set -euo pipefail
           npm i -g @redocly/cli
-          redocly lint "docs/apis-openapi/**/*.{yml,yaml}"
+          shopt -s globstar nullglob
+          mapfile -t files < <(git ls-files \
+            'docs/apis-openapi/**/*.yml' \
+            'docs/apis-openapi/**/*.yaml' \
+            'reference-architectures/api/**/*.yml' \
+            'reference-architectures/api/**/*.yaml')
+          if (( ${#files[@]} == 0 )); then
+            echo "Nenhum arquivo OpenAPI encontrado (advisory)."; exit 0
+          fi
+          echo "Arquivos OpenAPI:"
+          printf ' - %s\n' "${files[@]}"
+          for f in "${files[@]}"; do
+            echo "Lint: $f"
+            redocly lint "$f" || echo "Erros/avisos em $f (advisory)."
+          done
 
+      # ---------- AsyncAPI (advisory; robusto) ----------
       - name: Validate AsyncAPI — advisory
-        if: ${{ hashFiles('docs/eventos-asyncapi/**/*.yml') != '' || hashFiles('docs/eventos-asyncapi/**/*.yaml') != '' }}
+        if: ${{ hashFiles('docs/eventos-asyncapi/**/*.yml','docs/eventos-asyncapi/**/*.yaml','reference-architectures/events/**/*.yml','reference-architectures/events/**/*.yaml') != '' }}
         continue-on-error: true
+        shell: bash
         run: |
+          set -euo pipefail
           npm i -g @asyncapi/cli
-          asyncapi validate "docs/eventos-asyncapi/**/*.{yml,yaml}"
+          shopt -s globstar nullglob
+          mapfile -t files < <(git ls-files \
+            'docs/eventos-asyncapi/**/*.yml' \
+            'docs/eventos-asyncapi/**/*.yaml' \
+            'reference-architectures/events/**/*.yml' \
+            'reference-architectures/events/**/*.yaml')
+          if (( ${#files[@]} == 0 )); then
+            echo "Nenhum arquivo AsyncAPI encontrado (advisory)."; exit 0
+          fi
+          echo "Arquivos AsyncAPI:"
+          printf ' - %s\n' "${files[@]}"
+          for f in "${files[@]}"; do
+            echo "Validando: $f"
+            asyncapi validate "$f" || echo "Erros/avisos em $f (advisory)."
+          done
 
       # ---------- SAST ----------
       - name: SAST (Semgrep) — advisory
