@@ -32,8 +32,19 @@ jobs:
             echo "Aviso: SONAR_TOKEN/SONAR_HOST_URL ausentes; job será ignorado."
           fi
 
-      # (Opcional) Sanity check: ver se o token enxerga o projeto na API
-      - name: Sanity check API
+      # 1) Ping no servidor (mostra versão) — valida HOST
+      - name: Ping SonarQube
+        if: steps.gate.outputs.run == 'true'
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          set -e
+          echo "HOST=${SONAR_HOST_URL}"
+          echo -n "Version: "
+          curl -sSf "${SONAR_HOST_URL}/api/server/version" && echo
+
+      # 2) Sanity check — usa autenticação BASIC (mais compatível no SonarQube)
+      - name: Sanity check API (projeto existe?)
         if: steps.gate.outputs.run == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -42,12 +53,13 @@ jobs:
           set -e
           PK="Rodrigo-Camargo-13_ARQUITETURA_ITA_PARQUE"
           echo "Consultando ${SONAR_HOST_URL} pelo projeto [$PK]..."
-          # retorna 0 se achar "components":[1 ou mais]
-          curl -sSf -H "Authorization: Bearer ${SONAR_TOKEN}" \
-            "${SONAR_HOST_URL}/api/projects/search?projects=${PK}" \
-          | grep -q '"components":\[[^][]' \
-          && echo "Projeto encontrado pela API." \
-          || (echo "Projeto NÃO encontrado pela API (token/org/host?)." && exit 1)
+          # autenticação: token como usuário + senha vazia
+          JSON="$(curl -sSf -u "${SONAR_TOKEN}:" \
+            "${SONAR_HOST_URL}/api/projects/search?projects=${PK}")"
+          echo "$JSON"
+          echo "$JSON" | grep -q '"components":\[[^][]' \
+            && echo "Projeto encontrado pela API." \
+            || (echo "Projeto NÃO encontrado pela API (token/host/key?)." && exit 1)
 
       - name: Setup Java (para scanner)
         if: steps.gate.outputs.run == 'true'
@@ -63,12 +75,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          # Passamos as chaves TAMBÉM por argumento para garantir
           args: >
             -Dsonar.projectKey=Rodrigo-Camargo-13_ARQUITETURA_ITA_PARQUE
-            -Dsonar.organization=rodrigo-camargo-13
 
-      # Falha o pipeline se o Quality Gate reprovar
       - name: Quality Gate
         if: steps.gate.outputs.run == 'true'
         uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
