@@ -11,20 +11,35 @@ permissions:
 jobs:
   sonar:
     runs-on: ubuntu-latest
-    # só executa se secrets existirem
-    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      # (opcional) se houver Java, configurar JDK para o scanner embutido
-      - uses: actions/setup-java@v4
+      # Gate: só roda se os secrets existirem (não use 'secrets' no if do job)
+      - name: Decidir execução
+        id: gate
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          if [ -n "${SONAR_TOKEN}" ] && [ -n "${SONAR_HOST_URL}" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Aviso: SONAR_TOKEN/SONAR_HOST_URL ausentes; job será ignorado."
+          fi
+
+      - name: Setup Java (para scanner)
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Sonar Scan
+        if: steps.gate.outputs.run == 'true'
         uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        # Para SonarCloud, o action acima funciona igual (ele respeita sonar.organization do .properties)
+        # Se tiver sonar-project.properties no repo, não precisa de args adicionais
