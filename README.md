@@ -1,98 +1,155 @@
-# **ARQUITETURA_ITA_PARQUE**
+# ARQUITETURA_ITA_PARQUE
 
-Repositório institucional para **padronização, governança e referência técnica** da Fábrica de Software.
-
----
-
-## **📌 Conteúdo Principal**
-- **Arquiteturas de Referência**
-  - Modelos **C4** (contexto, contêiner, componentes)
-  - **ADRs** (Architecture Decision Records)
-  - **Blueprints**: microsserviços, monólito modular, serverless, integração legada, eventos assíncronos
-- **Guia Unificado de Padrões & Boas Práticas**
-  - Java (Spring), .NET Core, Python (FastAPI), Frontend (React)
-  - Segurança (DAST, gestão de vulnerabilidades, políticas de acesso)
-  - Observabilidade (OTel, métricas, logs, tracing)
-  - Testes (pirâmide de testes, Pact, coverage)
-- **Matriz de Tecnologias Homologadas**
-- **Governança Técnica**
-  - Checklists, rituais, processos de validação
-  - CODEOWNERS e fluxo de aprovações
-- **Pipelines de Qualidade e Automação** (SAST, SCA, SBOM)
+[![License](https://img.shields.io/github/license/Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE)](LICENSE)
+![CI](https://img.shields.io/badge/CI-Configurada-informational)
+![Quality Gates](https://img.shields.io/badge/Quality%20Gates-SAST%20%7C%20SCA%20%7C%20SBOM-success)
+![Security](https://img.shields.io/badge/Security-DAST%20%7C%20Policies%20%7C%20Vuln%20Mgmt-success)
 
 ---
 
-## **🚀 Como Usar**
-1. **Verificar Tecnologias Homologadas**  
-   → [`ops/matriz-tecnologias/matriz.md`](ops/matriz-tecnologias/matriz.md)
-2. **Selecionar Arquitetura Base**  
-   → `reference-architectures/` e escolha o blueprint adequado
-3. **Aplicar Padrões Técnicos**  
-   → `standards/` conforme linguagem/plataforma
-4. **Seguir Fluxo de Governança**  
-   → [`governance/processo-validacao-tecnica.md`](governance/processo-validacao-tecnica.md) + checklists
+## 📌 Resumo Executivo
+Hub institucional para **arquiteturas de referência, padrões técnicos e governança corporativa**.  
+Garante **consistência, qualidade, segurança e conformidade** em todos os sistemas, com **padrões auditáveis e pipelines automatizados**.
 
 ---
 
-## **⚙️ Pipelines Disponíveis**
-| Plataforma      | Localização |
-|-----------------|-------------|
-| **GitHub Actions** | `standards/cicd/github/.github/workflows/quality.yml` |
-| **Azure DevOps**   | `standards/cicd/azure/azure-pipelines.yml` |
-| **GitLab CI**      | `standards/cicd/gitlab/.gitlab-ci.yml` |
-| **Drone CI**       | `standards/cicd/drone/.drone.yml` |
+## 📖 Índice
+1. [Conteúdo Principal](#-conteúdo-principal)
+2. [Como Usar](#-como-usar)
+3. [Pipelines Disponíveis](#-pipelines-disponíveis)
+4. [Governança e Compliance](#-governança-e-compliance)
+5. [Observabilidade](#-observabilidade)
+6. [Segurança](#-segurança)
+7. [Estrutura do Repositório](#-estrutura-do-repositório)
+8. [Atualizações](#-atualizações)
+9. [Visão Executiva](#-visão-executiva)
 
 ---
 
-## **🏛 Governança e Compliance**
-- Revisão trimestral da **matriz de tecnologias**
-- **Rituais do comitê técnico** para decisões estratégicas
-- **ADRs** para registro de decisões relevantes
-- Gestão de segurança com pipelines automáticos e políticas de acesso
+<details>
+<summary>📂 <strong>Conteúdo Principal</strong></summary>
+
+- **Arquiteturas de Referência**  
+  - C4/ADRs/Blueprints: [`reference-architectures/`](reference-architectures/)
+  - Microsserviços (estendido): [`reference-architectures/microservices/blueprint-extended.md`](reference-architectures/microservices/blueprint-extended.md)  
+  - Monólito modular: [`reference-architectures/monolith/blueprint-monolito-modular.md`](reference-architectures/monolith/blueprint-monolito-modular.md)  
+  - Serverless: [`reference-architectures/serverless/blueprint-serverless.md`](reference-architectures/serverless/blueprint-serverless.md)  
+  - Integração legada (SOAP→REST): [`reference-architectures/legacy-integration/blueprint-exemplo-soap-rest.md`](reference-architectures/legacy-integration/blueprint-exemplo-soap-rest.md)
+
+- **Padrões & Boas Práticas**  
+  - Guia unificado: [`standards/guia-unificado.md`](standards/guia-unificado.md)  
+  - Java (Spring): [`standards/backend-java/`](standards/backend-java/)  
+  - .NET 8: [`standards/backend-dotnet/`](standards/backend-dotnet/)  
+  - Python (FastAPI): [`standards/backend-python/`](standards/backend-python/)  
+  - Front-end (React): [`standards/frontend-react/`](standards/frontend-react/)
+
+- **Matriz de Tecnologias Homologadas**  
+  - (Azure, .NET 8, Kafka/Event Hubs, Observabilidade, etc.)  
+  → **[Abrir Matriz](ops/matriz-tecnologias/matriz.md)**
+
+</details>
 
 ---
 
-## **📊 Observabilidade**
-- **Métricas**: Prometheus, Grafana, App Insights
-- **Tracing**: OpenTelemetry
-- **Logs**: Padrões centralizados e correlação entre serviços
-- **Alertas**: Configuração para eventos críticos e SLOs
+<details>
+<summary>🛠 <strong>Como Usar</strong></summary>
+
+1. **Tecnologias**: valide na **[Matriz](ops/matriz-tecnologias/matriz.md)**.  
+2. **Arquitetura**: escolha um **blueprint** em [`reference-architectures/`](reference-architectures/).  
+3. **Padrões**: aplique os guias de [`standards/`](standards/).  
+4. **Governança**: siga o **[Processo de Validação Técnica](governance/processo-validacao-tecnica.md)** + **[Checklists](governance/checklists/)**.
+
+</details>
 
 ---
 
-## **🔐 Segurança**
-- **DAST** (Dynamic Application Security Testing)
-- **Gestão de vulnerabilidades** e baseline OWASP
-- **Políticas de acesso** e segregação de funções
-- **Supply Chain Security** (SBOM, dependabot)
+<details>
+<summary>🚀 <strong>Pipelines Disponíveis</strong></summary>
+
+| Plataforma   | Arquivo |
+|---|---|
+| GitHub Actions | `standards/cicd/github/.github/workflows/quality.yml` |
+| Azure DevOps   | `standards/cicd/azure/azure-pipelines.yml` |
+| GitLab CI      | `standards/cicd/gitlab/.gitlab-ci.yml` |
+| Drone CI       | `standards/cicd/drone/.drone.yml` |
+
+> Dica: ative **uma** forja como oficial. As demais ficam como referência.
+
+</details>
 
 ---
 
-## **📂 Estrutura do Repositório**
+<details>
+<summary>🏛 <strong>Governança e Compliance</strong></summary>
+
+- Política de governança: [`governance/politica-governanca.md`](governance/politica-governanca.md)  
+- Versionamento & releases: [`governance/versioning-release.md`](governance/versioning-release.md)  
+- Rituais do comitê técnico: [`governance/comite-tecnico-rituais.md`](governance/comite-tecnico-rituais.md)  
+- ADRs: [`templates/adr.md`](templates/adr.md)  
+- CODEOWNERS: [`CODEOWNERS`](CODEOWNERS)
+
+</details>
+
+---
+
+<details>
+<summary>📊 <strong>Observabilidade</strong></summary>
+
+- Guia: [`ops/observabilidade-guia.md`](ops/observabilidade-guia.md)  
+- OTel — como instrumentar: [`standards/observability/otel-logging-tracing.md`](standards/observability/otel-logging-tracing.md)  
+- Monitoring (App Insights/Prom+Grafana): [`ops/monitoring/`](ops/monitoring/)  
+- Runbooks & SLOs: [`ops/runbooks/`](ops/runbooks/)
+
+</details>
+
+---
+
+<details>
+<summary>🔒 <strong>Segurança</strong></summary>
+
+- DAST (ZAP): [`standards/security/dast-guia.md`](standards/security/dast-guia.md)  
+- Gestão de vulnerabilidades: [`standards/security/gestao-vulnerabilidades.md`](standards/security/gestao-vulnerabilidades.md)  
+- Políticas de acesso: [`standards/security/politicas-acesso.md`](standards/security/politicas-acesso.md)  
+- Supply Chain (SBOM, dependabot): [`standards/cicd/sbom-supply-chain.md`](standards/cicd/sbom-supply-chain.md)
+
+</details>
+
+---
+
+<details>
+<summary>📁 <strong>Estrutura do Repositório</strong></summary>
+
 ```
 
-deploy/                  # Deploys Azure / GitOps
-docs/                    # Documentos gerais e APIs
-governance/              # Governança técnica, checklists, processos
-ops/                     # Matriz de tecnologias, migração, monitoring
-reference-architectures/ # Arquiteturas de referência (blueprints)
-standards/               # Padrões técnicos por linguagem/plataforma
-testing/                 # Estratégias e guias de testes
-templates/               # Templates de ADR, PR, Issues
+deploy/                  # Deploy Azure (App Service, AKS, GitOps)
+docs/                    # Páginas executivas (MkDocs/links)
+governance/              # Governança, processos, checklists, ADRs
+ops/                     # Matriz, migração (CDC), monitoring, OTel collector
+reference-architectures/ # Blueprints e exemplos
+standards/               # Padrões por linguagem, CI/CD, observabilidade, segurança
+security/                # Semgrep/Trivy baselines
+testing/                 # Pact, pirâmide de testes
+templates/               # ADR/PR/Issue
 
 ```
 
----
-
-## **📅 Atualizações**
-- Revisão contínua
-- Mudanças estruturais → **validação do comitê técnico**
-- Histórico e versões → [`CHANGELOG.md`](CHANGELOG.md)
+</details>
 
 ---
 
-## **📌 Visão Executiva**
-![Diagrama Visão Geral](docs/assets/visao-executiva-arquitetura.png)
-> **Legenda:** Este diagrama consolida **arquitetura, governança, padrões e pipelines** para visão rápida de stakeholders.
+<details>
+<summary>📝 <strong>Atualizações</strong></summary>
+
+- **Baseline** audit-ready concluída (arquiteturas, padrões, governança, CI e segurança).  
+- **Última revisão:** 2025-08  
+- **Próxima auditoria técnica:** 2025-10
+
+</details>
 
 ---
+
+## 🎯 Visão Executiva
+![Visão Executiva](docs/visao-executiva-arquitetura.png)
+*Consolida arquitetura, padrões, governança, observabilidade, segurança e pipelines.*
+
+```
