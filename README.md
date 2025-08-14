@@ -149,7 +149,7 @@ templates/               # ADR/PR/Issue
 ---
 
 ## 🎯 Visão Executiva
-![Visão Executiva](docs/visao-executiva-arquitetura.png)
+![Visão Executiva](docs/assets/visao-executiva-arquitetura.png)
 *Consolida arquitetura, padrões, governança, observabilidade, segurança e pipelines.*
 
 ```
