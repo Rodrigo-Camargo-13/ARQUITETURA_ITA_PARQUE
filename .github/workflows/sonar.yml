@@ -1,9 +1,9 @@
 name: sonar
 
 on:
-  pull_request:
   push:
     branches: [ main ]
+  pull_request:
 
 permissions:
   contents: read
@@ -11,77 +11,18 @@ permissions:
 jobs:
   sonar:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout (histórico completo para blame)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Gate: só roda se os secrets existirem
-      - name: Decidir execução
-        id: gate
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          if [ -n "${SONAR_TOKEN}" ] && [ -n "${SONAR_HOST_URL}" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "Aviso: SONAR_TOKEN/SONAR_HOST_URL ausentes; job será ignorado."
-          fi
-
-      # 1) Ping no servidor (mostra versão) — valida HOST
-      - name: Ping SonarQube
-        if: steps.gate.outputs.run == 'true'
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          set -e
-          echo "HOST=${SONAR_HOST_URL}"
-          echo -n "Version: "
-          curl -sSf "${SONAR_HOST_URL}/api/server/version" && echo
-
-      # 2) Sanity check — usa autenticação BASIC (mais compatível no SonarQube)
-      - name: Sanity check API (projeto existe?)
-        if: steps.gate.outputs.run == 'true'
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          set -e
-          PK="Rodrigo-Camargo-13_ARQUITETURA_ITA_PARQUE"
-          echo "Consultando ${SONAR_HOST_URL} pelo projeto [$PK]..."
-          # autenticação: token como usuário + senha vazia
-          JSON="$(curl -sSf -u "${SONAR_TOKEN}:" \
-            "${SONAR_HOST_URL}/api/projects/search?projects=${PK}")"
-          echo "$JSON"
-          echo "$JSON" | grep -q '"components":\[[^][]' \
-            && echo "Projeto encontrado pela API." \
-            || (echo "Projeto NÃO encontrado pela API (token/host/key?)." && exit 1)
-
-      - name: Setup Java (para scanner)
-        if: steps.gate.outputs.run == 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Sonar Scan
-        if: steps.gate.outputs.run == 'true'
-        uses: SonarSource/sonarqube-scan-action@v2
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
             -Dsonar.projectKey=Rodrigo-Camargo-13_ARQUITETURA_ITA_PARQUE
-
-      - name: Quality Gate
-        if: steps.gate.outputs.run == 'true'
-        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
-        timeout-minutes: 10
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.organization=rodrigo-camargo-13
