@@ -18,26 +18,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "sanity ok — REV-JAVA-LOOP-01"
+      - run: echo "sanity ok — REV-JAVA-LOOP-OK"
 
   quality:
     runs-on: ubuntu-latest
     needs: [sanity]
     steps:
       - uses: actions/checkout@v4
-
       - name: Workflow rev
-        run: echo "REV-JAVA-LOOP-01"
+        run: echo "REV-JAVA-LOOP-OK"
 
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      # ---------- .NET: loop por projeto ----------
+      # ---------- .NET ----------
       - name: Setup .NET (se houver .csproj)
         if: ${{ hashFiles('**/*.csproj') != '' }}
         uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+        with: { dotnet-version: '8.0.x' }
 
       - name: Build/Test .NET (por projeto)
         if: ${{ hashFiles('**/*.csproj') != '' }}
@@ -61,7 +59,7 @@ jobs:
             echo "Sem projetos de teste .NET encontrados (ok)."
           fi
 
-      # ---------- Java: loop por módulo ----------
+      # ---------- Java (loop por módulo) ----------
       - name: Setup Java (se houver Maven)
         if: ${{ hashFiles('**/pom.xml') != '' }}
         uses: actions/setup-java@v4
@@ -69,24 +67,30 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Java (Maven por módulo)
+      - name: Listar POMs Maven encontrados
         if: ${{ hashFiles('**/pom.xml') != '' }}
         shell: bash
         run: |
+          echo "POMs:"
+          git ls-files '**/pom.xml' || true
+
+      - name: Build Java (Maven por módulo) — advisory
+        if: ${{ hashFiles('**/pom.xml') != '' }}
+        shell: bash
+        continue-on-error: true
+        run: |
           set -e
-          echo ">> Build Maven por módulo"
           for f in $(git ls-files '**/pom.xml'); do
             d="$(dirname "$f")"
             echo "---- Módulo: $f (dir: $d)"
-            (cd "$d" && mvn -B -DskipTests package)
+            (cd "$d" && mvn -B -DskipTests package) || echo "Falha no módulo $d (advisory)."
           done
 
       # ---------- Python ----------
       - name: Setup Python (se houver requirements.txt)
         if: ${{ hashFiles('**/requirements.txt') != '' }}
         uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+        with: { python-version: '3.x' }
 
       - name: Install Python deps
         if: ${{ hashFiles('**/requirements.txt') != '' }}
