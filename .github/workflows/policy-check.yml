@@ -2,6 +2,7 @@ name: policy-check
 
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -12,21 +13,41 @@ jobs:
   conftest:
     name: Conftest (OPA)
     runs-on: ubuntu-latest
-    # só roda se houver políticas rego OU diretório policy/
-    if: ${{ hashFiles('policy/**/*.rego') != '' }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Conftest
         uses: styra-inc/setup-conftest@v3
         with:
           version: v0.58.0
-      - name: Rodar Conftest em manifests (YAML/JSON)
+
+      # Descobre se existem políticas .rego no repositório
+      - name: Detectar políticas Rego
+        id: detect
         run: |
-          set -e
-          # cole os arquivos que você deseja validar:
-          TARGETS="$(git ls-files '*.yaml' '*.yml' '*.json' || true)"
-          if [ -z "$TARGETS" ]; then
-            echo "Sem arquivos para validar. Ok."
-            exit 0
+          if find policy -type f -name '*.rego' 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
           fi
-          conftest test -p policy $TARGETS -o table
+
+      # Coleta os manifests a validar
+      - name: Coletar arquivos YAML/JSON
+        id: collect
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          TARGETS="$(git ls-files '*.yml' '*.yaml' '*.json' | tr '\n' ' ')"
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+          if [ -z "$TARGETS" ]; then
+            echo "Sem arquivos YAML/JSON para validar."
+          fi
+
+      # Executa o Conftest somente se houver políticas e alvos
+      - name: Rodar Conftest
+        if: steps.detect.outputs.found == 'true' && steps.collect.outputs.targets != ''
+        run: |
+          conftest test -p policy ${{ steps.collect.outputs.targets }}
