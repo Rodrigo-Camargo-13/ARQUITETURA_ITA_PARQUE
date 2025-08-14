@@ -25,42 +25,75 @@ jobs:
     needs: [sanity]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      # .NET
-      - name: Setup .NET
+      # ---------- .NET (loop em cada .csproj) ----------
+      - name: Setup .NET (se houver .csproj)
         if: ${{ hashFiles('**/*.csproj') != '' }}
         uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '8.0.x' }
-      - name: Build/Test .NET
-        if: ${{ hashFiles('**/*.csproj') != '' }}
-        run: |
-          dotnet restore
-          dotnet build -c Release --no-restore
-          if ls **/*Tests.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+        with:
+          dotnet-version: '8.0.x'
 
-      # Java (Maven)
-      - name: Setup Java
+      - name: Build/Test .NET (por projeto)
+        if: ${{ hashFiles('**/*.csproj') != '' }}
+        shell: bash
+        run: |
+          set -e
+          echo ">> Restaurando e buildando projetos .NET"
+          for f in $(git ls-files '**/*.csproj'); do
+            echo "---- Projeto: $f"
+            dotnet restore "$f"
+            dotnet build -c Release --no-restore "$f"
+          done
+          echo ">> Rodando testes .NET (se existirem)"
+          has_tests=false
+          for t in $(git ls-files '**/*Tests.csproj'); do
+            has_tests=true
+            echo "---- Testes: $t"
+            dotnet test -c Release --no-build "$t"
+          done
+          if [ "$has_tests" = false ]; then
+            echo "Sem projetos de teste .NET encontrados (ok)."
+          fi
+
+      # ---------- Java (loop em cada pom.xml) ----------
+      - name: Setup Java (se houver Maven)
         if: ${{ hashFiles('**/pom.xml') != '' }}
         uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
-      - name: Build Java
-        if: ${{ hashFiles('**/pom.xml') != '' }}
-        run: mvn -B -DskipTests package
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-      # Python
-      - name: Setup Python
+      - name: Build Java (Maven por módulo)
+        if: ${{ hashFiles('**/pom.xml') != '' }}
+        shell: bash
+        run: |
+          set -e
+          echo ">> Build Maven por módulo"
+          for f in $(git ls-files '**/pom.xml'); do
+            echo "---- Módulo: $f"
+            mvn -B -DskipTests -f "$f" package
+          done
+
+      # ---------- Python ----------
+      - name: Setup Python (se houver requirements.txt)
         if: ${{ hashFiles('**/requirements.txt') != '' }}
         uses: actions/setup-python@v5
-        with: { python-version: '3.x' }
+        with:
+          python-version: '3.x'
+
       - name: Install Python deps
         if: ${{ hashFiles('**/requirements.txt') != '' }}
+        shell: bash
         run: |
-          for f in $(git ls-files '**/requirements.txt'); do pip install -r "$f"; done
+          set -e
+          for f in $(git ls-files '**/requirements.txt'); do
+            echo "---- Requirements: $f"
+            pip install -r "$f"
+          done
 
-      # ---------- Contratos (agora ADVISORY) ----------
+      # ---------- Contratos (advisory) ----------
       - name: Validate OpenAPI — advisory
         if: ${{ hashFiles('docs/apis-openapi/**/*.yml') != '' || hashFiles('docs/apis-openapi/**/*.yaml') != '' }}
         continue-on-error: true
@@ -75,7 +108,7 @@ jobs:
           npm i -g @asyncapi/cli
           asyncapi validate "docs/eventos-asyncapi/**/*.{yml,yaml}"
 
-      # SAST
+      # ---------- SAST ----------
       - name: SAST (Semgrep) — advisory
         if: ${{ hashFiles('**/*.cs','**/*.java','**/*.py','**/*.js','**/*.ts') != '' }}
         run: |
@@ -83,19 +116,19 @@ jobs:
           pip install semgrep
           semgrep ci --config security/semgrep/semgrep.yml --sarif --output semgrep.sarif || echo "Semgrep findings (advisory)."
 
-      # SCA/Misconfig/Secrets
+      # ---------- SCA/Misconfig/Secrets ----------
       - name: SCA & Misconfig (Trivy FS) — advisory
         uses: aquasecurity/trivy-action@0.24.0
         with:
           scan-type: 'fs'
           format: 'table'
-          exit-code: '0'
+          exit-code: '0'   # mude para '1' quando quiser bloquear
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           scanners: 'vuln,secret,misconfig'
           hide-progress: true
 
-      # SBOM
+      # ---------- SBOM ----------
       - name: SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
