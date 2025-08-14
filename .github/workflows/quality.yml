@@ -18,17 +18,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "sanity ok"
+      - run: echo "sanity ok — REV-JAVA-LOOP-01"
 
   quality:
     runs-on: ubuntu-latest
     needs: [sanity]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Workflow rev
+        run: echo "REV-JAVA-LOOP-01"
+
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
 
-      # ---------- .NET (loop em cada .csproj) ----------
+      # ---------- .NET: loop por projeto ----------
       - name: Setup .NET (se houver .csproj)
         if: ${{ hashFiles('**/*.csproj') != '' }}
         uses: actions/setup-dotnet@v4
@@ -57,7 +61,7 @@ jobs:
             echo "Sem projetos de teste .NET encontrados (ok)."
           fi
 
-      # ---------- Java (loop em cada pom.xml) ----------
+      # ---------- Java: loop por módulo ----------
       - name: Setup Java (se houver Maven)
         if: ${{ hashFiles('**/pom.xml') != '' }}
         uses: actions/setup-java@v4
@@ -72,8 +76,9 @@ jobs:
           set -e
           echo ">> Build Maven por módulo"
           for f in $(git ls-files '**/pom.xml'); do
-            echo "---- Módulo: $f"
-            mvn -B -DskipTests -f "$f" package
+            d="$(dirname "$f")"
+            echo "---- Módulo: $f (dir: $d)"
+            (cd "$d" && mvn -B -DskipTests package)
           done
 
       # ---------- Python ----------
@@ -122,7 +127,7 @@ jobs:
         with:
           scan-type: 'fs'
           format: 'table'
-          exit-code: '0'   # mude para '1' quando quiser bloquear
+          exit-code: '0'
           ignore-unfixed: true
           severity: 'HIGH,CRITICAL'
           scanners: 'vuln,secret,misconfig'
