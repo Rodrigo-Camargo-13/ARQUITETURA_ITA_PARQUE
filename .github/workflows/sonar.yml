@@ -3,7 +3,7 @@ name: sonar
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -13,9 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (histórico completo para blame)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # Gate: só roda se os secrets existirem (não use 'secrets' no if do job)
+      # Gate: só roda se os secrets existirem
       - name: Decidir execução
         id: gate
         env:
@@ -42,4 +45,13 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        # Se tiver sonar-project.properties no repo, não precisa de args adicionais
+        # Com sonar-project.properties na raiz, não precisa passar args
+
+      # (Opcional, mas recomendado) Falhar o pipeline se o Quality Gate reprovar
+      - name: Quality Gate
+        if: steps.gate.outputs.run == 'true'
+        uses: SonarSource/sonarqube-quality-gate-action@v1.1.0
+        timeout-minutes: 10
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
