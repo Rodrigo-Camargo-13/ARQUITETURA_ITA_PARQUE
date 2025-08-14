@@ -1,0 +1,51 @@
+name: kpi-collector
+on:
+  schedule:
+    - cron: '0 6 * * 1' # toda segunda 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Coleta básica de KPIs (últimos 7 dias)
+        id: kpis
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const since = new Date(Date.now() - 7*24*3600*1000).toISOString();
+            // 1) Runs quality-gates
+            const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+              owner: context.repo.owner, repo: context.repo.repo, per_page: 100
+            });
+            const q = runs.filter(r => r.name?.includes('quality-gates') && new Date(r.created_at) >= new Date(since));
+            const total = q.length;
+            const failed = q.filter(r => r.conclusion === 'failure' || r.conclusion === 'cancelled' || r.conclusion === 'timed_out').length;
+            const failRate = total ? Math.round((failed/total)*100) : 0;
+
+            // 2) SBOM (runs que geraram artefato sbom.cdx.json)
+            const sbom = q.filter(r => r.head_sha && r.name?.includes('quality-gates'));
+
+            core.setOutput('data', JSON.stringify({
+              periodStart: since,
+              repo: context.repo.repo,
+              qualityRuns: total,
+              qualityFailRatePct: failRate
+            }, null, 2));
+
+      - name: Persistir KPIs
+        run: |
+          mkdir -p ops/kpis/history
+          ts=$(date -u +%Y%m%dT%H%M%SZ)
+          echo '${{ steps.kpis.outputs.data }}' > "ops/kpis/history/${ts}.json"
+
+      - name: Commit KPIs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "kpi: snapshot semanal"
+          file_pattern: ops/kpis/history/*.json

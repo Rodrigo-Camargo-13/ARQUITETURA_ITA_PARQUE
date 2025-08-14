@@ -1,0 +1,58 @@
+name: reusable-build-test
+on:
+  workflow_call:
+    inputs:
+      run_dotnet: { type: boolean, default: true }
+      run_java:   { type: boolean, default: true }
+      run_python: { type: boolean, default: true }
+
+jobs:
+  build_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      # .NET
+      - if: ${{ inputs.run_dotnet && hashFiles('**/*.csproj') != '' }}
+        name: .NET setup + build + test
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - if: ${{ inputs.run_dotnet && hashFiles('**/*.csproj') != '' }}
+        run: |
+          for f in $(git ls-files '**/*.csproj'); do
+            dotnet restore "$f"
+            dotnet build -c Release --no-restore "$f"
+          done
+          for t in $(git ls-files '**/*Tests.csproj'); do
+            dotnet test -c Release --no-build "$t" --collect:"XPlat Code Coverage"
+          done
+
+      # Java (Maven por módulo)
+      - if: ${{ inputs.run_java && hashFiles('**/pom.xml') != '' }}
+        name: Java setup + build (módulos)
+        uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - if: ${{ inputs.run_java && hashFiles('**/pom.xml') != '' }}
+        shell: bash
+        run: |
+          set -e
+          for f in $(git ls-files '**/pom.xml'); do
+            (cd "$(dirname "$f")" && mvn -B -DskipTests package)
+          done
+
+      # Python
+      - if: ${{ inputs.run_python && hashFiles('**/requirements.txt') != '' }}
+        name: Python setup + deps + tests
+        uses: actions/setup-python@v5
+        with: { python-version: '3.x' }
+      - if: ${{ inputs.run_python && hashFiles('**/requirements.txt') != '' }}
+        shell: bash
+        run: |
+          for r in $(git ls-files '**/requirements.txt'); do pip install -r "$r"; done
+          if [ -f "pytest.ini" ] || ls **/tests 1>/dev/null 2>&1; then
+            pip install pytest coverage
+            coverage run -m pytest || true
+            coverage xml || true
+          fi

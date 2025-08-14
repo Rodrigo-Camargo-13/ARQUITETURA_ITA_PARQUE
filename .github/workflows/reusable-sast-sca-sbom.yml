@@ -1,0 +1,33 @@
+name: reusable-sast-sca-sbom
+on:
+  workflow_call: {}
+
+jobs:
+  security_quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SAST (Semgrep) — advisory
+        if: ${{ hashFiles('**/*.cs','**/*.java','**/*.py','**/*.js','**/*.ts') != '' }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install semgrep
+          semgrep ci --config security/semgrep/semgrep.yml --sarif --output semgrep.sarif || true
+
+      - name: SCA / Misconfig / Secrets (Trivy FS) — advisory
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          format: table
+          exit-code: '0'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          scanners: vuln,secret,misconfig
+
+      - name: SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json

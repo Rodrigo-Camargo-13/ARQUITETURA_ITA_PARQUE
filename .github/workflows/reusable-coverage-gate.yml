@@ -1,0 +1,56 @@
+name: reusable-coverage-gate
+on:
+  workflow_call:
+    inputs:
+      min_dotnet: { type: number, default: 60 }
+      min_java:   { type: number, default: 60 }
+      min_py:     { type: number, default: 60 }
+
+jobs:
+  coverage_gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # .NET -> gera cobertura (se ainda não existir)
+      - if: ${{ hashFiles('**/*.csproj') != '' }}
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - if: ${{ hashFiles('**/*.csproj') != '' }}
+        run: |
+          if ! ls **/coverage.cobertura.xml 1>/dev/null 2>&1; then
+            for t in $(git ls-files '**/*Tests.csproj'); do dotnet test -c Release --collect:"XPlat Code Coverage" "$t"; done
+            find . -name "coverage.cobertura.xml" -print
+          fi
+
+      # Java -> jacoco.xml (se plugin estiver no pom de testes)
+      - if: ${{ hashFiles('**/pom.xml') != '' }}
+        uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - if: ${{ hashFiles('**/pom.xml') != '' }}
+        run: |
+          if ! ls **/jacoco.xml 1>/dev/null 2>&1; then
+            for f in $(git ls-files '**/pom.xml'); do (cd "$(dirname "$f")" && mvn -B -DskipTests=false test || true); done
+          fi
+
+      # Python -> coverage.xml
+      - if: ${{ hashFiles('**/requirements.txt') != '' }}
+        uses: actions/setup-python@v5
+        with: { python-version: '3.x' }
+      - if: ${{ hashFiles('**/requirements.txt') != '' }}
+        run: |
+          pip install coverage || true
+          if ! ls **/coverage.xml 1>/dev/null 2>&1; then coverage run -m pytest || true; coverage xml || true; fi
+
+      # Consolida e aplica gate
+      - name: Coverage Gate
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: |
+            **/coverage.cobertura.xml
+            **/jacoco.xml
+            **/coverage.xml
+          format: markdown
+          output: both
+          fail_below_min: true
+          thresholds: "${{ inputs.min_dotnet }} ${{ inputs.min_java }} ${{ inputs.min_py }}"

@@ -1,0 +1,32 @@
+name: container-scan
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/Dockerfile'
+      - '.github/workflows/container-scan.yml'
+
+jobs:
+  image_scan:
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image local (sem push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: local/build:scan
+          load: true
+
+      - name: Trivy Image (falha em HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: local/build:scan
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL

@@ -1,0 +1,13 @@
+name: coverage-gate
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  cov:
+    uses: Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE/.github/workflows/reusable-coverage-gate.yml@main
+    with:
+      min_dotnet: 70
+      min_java: 70
+      min_py: 70

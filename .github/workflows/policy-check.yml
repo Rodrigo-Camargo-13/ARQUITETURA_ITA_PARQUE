@@ -1,0 +1,23 @@
+name: policy-check
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+    paths:
+      - 'deploy/**/*.yml'
+      - 'deploy/**/*.yaml'
+      - 'security/policy/opa/**'
+      - '.github/workflows/policy-check.yml'
+
+jobs:
+  conftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Conftest on K8s manifests
+        uses: instrumenta/conftest-action@v1
+        with:
+          files: |
+            deploy/**/*.yml
+            deploy/**/*.yaml
+          policy: security/policy/opa
