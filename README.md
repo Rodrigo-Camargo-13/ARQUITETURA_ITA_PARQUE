@@ -1,7 +1,7 @@
 # ARQUITETURA_ITA_PARQUE
 
 [![License](https://img.shields.io/github/license/Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE)](LICENSE)
-![CI](https://img.shields.io/badge/CI-Configurada-informational)
+[![CI - GitHub Actions](https://github.com/Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE/actions/workflows/quality.yml/badge.svg)](https://github.com/Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE/actions/workflows/quality.yml)
 ![Quality Gates](https://img.shields.io/badge/Quality%20Gates-SAST%20%7C%20SCA%20%7C%20SBOM-success)
 ![Security](https://img.shields.io/badge/Security-DAST%20%7C%20Policies%20%7C%20Vuln%20Mgmt-success)
 
