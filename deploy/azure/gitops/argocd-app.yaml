@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ita-parque-api
+spec:
+  project: default
+  source:
+    repoURL: 'https://seu-repo.git'
+    targetRevision: main
+    path: charts/api
+    helm:
+      values: |
+        image:
+          repository: seuacr.azurecr.io/ita-parque/api
+          tag: latest
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
