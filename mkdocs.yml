@@ -1,0 +1,56 @@
+site_name: ARQUITETURA_ITA_PARQUE
+site_description: Arquiteturas de referência, padrões, governança e operações — visão executiva
+site_url: https://rodrigo-camargo-13.github.io/ARQUITETURA_ITA_PARQUE
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+nav:
+  - Visão Geral: index.md
+  - Matriz & Diretrizes:
+      - Matriz de Tecnologias: matriz.md
+      - Guia Unificado (Segurança, Testes, Logs, Obs.): guia-unificado.md
+  - Arquiteturas de Referência:
+      - Microsserviços (Estendido): microservices-extended.md
+      - Monólito Modular: monolito-modular.md
+      - Serverless: serverless.md
+      - Integração Legada: integracao-legada.md
+  - Governança:
+      - Política de Governança: governanca.md
+      - Versionamento & Releases: versioning-release.md
+      - ADR — Exemplo Estruturado: adr-exemplo.md
+  - Observabilidade & Operação:
+      - Observabilidade — Guia: observabilidade-guia.md
+      - OTel — Como instrumentar: otel-logging-tracing.md
+      - Runbooks & SLOs: runbooks-slos.md
+  - Segurança:
+      - DAST: dast-guia.md
+      - Gestão de Vulnerabilidades: gestao-vulnerabilidades.md
+      - Políticas de Acesso: politicas-acesso.md
+  - Entrega & Deploy:
+      - Quality Gates (CI/CD): quality-gates.md
+      - Deploy — App Service: deploy-appservice.md
+      - Deploy — AKS (Helm/GitOps): deploy-aks.md
+      - Monitoramento (Insights/Prom+Grafana): monitoring.md
+  - Migração:
+      - Estratégia de Dados (CDC): cdc-estrategia.md
+      - Checklist CDC: cdc-checklist.md
+repo_url: https://github.com/Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE
+repo_name: ARQUITETURA_ITA_PARQUE
+plugins:
+  - search
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - attr_list
+  - tables
