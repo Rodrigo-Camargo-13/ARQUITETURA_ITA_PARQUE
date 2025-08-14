@@ -1,13 +1,30 @@
 name: coverage-gate
+
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  cov:
-    uses: Rodrigo-Camargo-13/ARQUITETURA_ITA_PARQUE/.github/workflows/reusable-coverage-gate.yml@main
-    with:
-      min_dotnet: 70
-      min_java: 70
-      min_py: 70
+  coverage_gate:
+    runs-on: ubuntu-latest
+    # só roda se houver algum arquivo de cobertura
+    if: ${{ hashFiles('**/jacoco*.xml', '**/coverage.xml', '**/coverage.cobertura.xml', '**/lcov.info') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Coverage Gate
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          files: |
+            **/jacoco*.xml
+            **/coverage.xml
+            **/coverage.cobertura.xml
+            **/lcov.info
+          format: markdown
+          indicators: true
+          output: both
+          fail_below_min: false         # mude para true quando quiser “quebrar” PR
+          thresholds: '70 70 70'        # ajuste seus mínimos

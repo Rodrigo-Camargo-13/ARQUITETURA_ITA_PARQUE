@@ -1,0 +1,48 @@
+name: image-scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  image_scan:
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('**/Dockerfile') != '' }}   # só roda se existir ao menos um Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descobrir Dockerfile principal
+        id: df
+        shell: bash
+        run: |
+          set -e
+          FILE="$(git ls-files '**/Dockerfile' | head -n1 || true)"
+          if [ -z "$FILE" ]; then
+            echo "dockerfile=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "dockerfile=$FILE" >> "$GITHUB_OUTPUT"
+          echo "Encontrado: $FILE"
+
+      - name: Build image (local, sem push)
+        if: ${{ steps.df.outputs.dockerfile != '' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.df.outputs.dockerfile }}
+          push: false
+          tags: local/build:scan
+
+      - name: Trivy Image (falha em HIGH/CRITICAL)
+        if: ${{ steps.df.outputs.dockerfile != '' }}
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: local/build:scan
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'HIGH,CRITICAL'

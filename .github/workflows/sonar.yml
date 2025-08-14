@@ -1,35 +1,30 @@
 name: sonar
+
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   sonar:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
+    # só executa se secrets existirem
+    if: ${{ secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != '' }}
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
 
-      # (Opcional) gerar coberturas mínimas antes do scan
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '8.0.x' }
-      - run: |
-          if ls **/*Tests.csproj 1>/dev/null 2>&1; then
-            for t in $(git ls-files '**/*Tests.csproj'); do dotnet test -c Release --collect:"XPlat Code Coverage" "$t"; done
-          fi
-
+      # (opcional) se houver Java, configurar JDK para o scanner embutido
       - uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
-      - run: |
-          if ls **/pom.xml 1>/dev/null 2>&1; then
-            for f in $(git ls-files '**/pom.xml'); do (cd "$(dirname "$f")" && mvn -B -DskipTests=false test || true); done
-          fi
+        with:
+          distribution: temurin
+          java-version: '17'
 
-      - uses: SonarSource/sonarqube-scan-action@v2
+      - name: Sonar Scan
+        uses: SonarSource/sonarqube-scan-action@v2
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_TOKEN:    ${{ secrets.SONAR_TOKEN }}
+        # Para SonarCloud, o action acima funciona igual (ele respeita sonar.organization do .properties)

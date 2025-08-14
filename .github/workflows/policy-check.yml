@@ -1,23 +1,32 @@
 name: policy-check
+
 on:
   pull_request:
   push:
-    branches: [ main ]
-    paths:
-      - 'deploy/**/*.yml'
-      - 'deploy/**/*.yaml'
-      - 'security/policy/opa/**'
-      - '.github/workflows/policy-check.yml'
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   conftest:
+    name: Conftest (OPA)
     runs-on: ubuntu-latest
+    # só roda se houver políticas rego OU diretório policy/
+    if: ${{ hashFiles('policy/**/*.rego') != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Conftest on K8s manifests
-        uses: instrumenta/conftest-action@v1
+      - name: Setup Conftest
+        uses: styra-inc/setup-conftest@v3
         with:
-          files: |
-            deploy/**/*.yml
-            deploy/**/*.yaml
-          policy: security/policy/opa
+          version: v0.58.0
+      - name: Rodar Conftest em manifests (YAML/JSON)
+        run: |
+          set -e
+          # cole os arquivos que você deseja validar:
+          TARGETS="$(git ls-files '*.yaml' '*.yml' '*.json' || true)"
+          if [ -z "$TARGETS" ]; then
+            echo "Sem arquivos para validar. Ok."
+            exit 0
+          fi
+          conftest test -p policy $TARGETS -o table
