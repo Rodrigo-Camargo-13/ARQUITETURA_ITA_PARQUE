@@ -17,3 +17,10 @@ Impedir que mudanças cheguem a ambientes compartilhados sem qualidade mínima e
 - Cobertura mínima por módulo crítico (definida por risco).
 - Zero vulnerabilidades CRITICAL e ZERO segredos expostos.
 - Evidências publicadas no job (artefatos, relatórios).
+
+## DAST
+- OWASP ZAP rodando em pre-release/ambiente efêmero contra endpoints expostos.
+- Fails em payloads críticos (SQLi/XSS/IDOR).
+
+## Gestão de Vulnerabilidades
+- SCA diário + relatório semanal; CVEs HIGH/CRITICAL exigem exceção formal (ADR curta) e prazo.

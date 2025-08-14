@@ -1,4 +1,3 @@
-```yml
 # Pipeline de qualidade e segurança — GitHub Actions
 # Objetivo: impedir que código sem build, testes ou checagens mínimas de segurança avance.
 # Dispara em PR e em push na branch main. Inclui build/test (.NET), SAST (Semgrep),
@@ -72,7 +71,6 @@ jobs:
           if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build --collect:"XPlat Code Coverage"; fi
 
       # 9) SAST — análise estática de segurança com Semgrep
-      #    Se você tiver regras no repo (security/semgrep/semgrep.yml), o action as usa automaticamente.
       - name: SAST (Semgrep)
         uses: returntocorp/semgrep-action@v1
         with:
@@ -130,4 +128,3 @@ jobs:
       #   uses: github/codeql-action/upload-sarif@v3
       #   with:
       #     sarif_file: semgrep.sarif
-```

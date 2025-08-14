@@ -1,51 +1,136 @@
 # Pipeline de Build/Test/Security — Azure DevOps
-# Gatilho: qualquer push na main
+# Objetivo: impedir que código sem build, testes ou checagens mínimas de segurança avance.
+# Dispara em push na branch main. Inclui build/test (.NET), SAST (Semgrep),
+# SCA (Trivy), validação de contratos (OpenAPI/AsyncAPI) e geração/publicação de SBOM (CycloneDX).
+
 trigger:
 - main
 
-# Agente hospedado Ubuntu
+# Variáveis opcionais (customize conforme o ambiente)
+variables:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '20.x'
+  DAST_TARGET_URL: ''   # Ex.: http://preview-env:8080 (deixe vazio se não for rodar DAST)
+
 pool:
   vmImage: ubuntu-latest
 
 steps:
+# 0) (Implícito) Checkout do repositório já acontece por padrão no Azure DevOps
+
 # 1) Instala SDK .NET 8.x (para compilar e testar projetos C#)
 - task: UseDotNet@2
+  displayName: Setup .NET 8 SDK
   inputs:
     packageType: 'sdk'
     version: '8.0.x'
 
-# 2) Build (só se houver projetos .NET)
+# 2) Cache de pacotes NuGet (acelera builds)
+- task: Cache@2
+  displayName: Cache NuGet
+  inputs:
+    key: 'nuget | "$(Agent.OS)" | **/*.csproj, **/packages.lock.json'
+    restoreKeys: |
+      nuget | "$(Agent.OS)"
+    path: ~/.nuget/packages
+
+# 3) Setup Python (para Semgrep/CycloneDX e utilitários)
+- task: UsePythonVersion@0
+  displayName: Setup Python
+  inputs:
+    versionSpec: '$(PYTHON_VERSION)'
+    addToPath: true
+
+# 4) Setup Node.js (validadores OpenAPI/AsyncAPI)
+- task: NodeTool@0
+  displayName: Setup Node.js
+  inputs:
+    versionSpec: '$(NODE_VERSION)'
+
+# 5) Restore (quando houver .NET) — ajuda cache
 - script: |
-    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release; fi
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet restore; fi
+  displayName: Restore (.NET)
+
+# 6) Build (só se houver projetos .NET)
+- script: |
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet build -c Release --no-restore; fi
   displayName: Build (.NET)
 
-# 3) Testes unitários (sem rebuild)
+# 7) Testes unitários (sem rebuild) + cobertura
 - script: |
-    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build; fi
+    if ls **/*.csproj 1> /dev/null 2>&1; then dotnet test -c Release --no-build --collect:"XPlat Code Coverage"; fi
   displayName: Tests (.NET)
 
-# 4) SAST — Semgrep
+# 8) SAST — Semgrep (usa regras públicas p/default ou as do repo se existir security/semgrep/semgrep.yml)
 - script: |
-    pip3 install --upgrade pip
-    pip3 install semgrep
-    semgrep ci
+    python -m pip install --upgrade pip
+    pip install semgrep
+    if [ -f "security/semgrep/semgrep.yml" ]; then
+      semgrep ci --config security/semgrep/semgrep.yml
+    else
+      semgrep ci --config p/default
+    fi
   displayName: SAST (Semgrep)
 
-# 5) SCA — Trivy (dependências vulneráveis)
+# 9) SCA — Trivy (dependências vulneráveis, falha em HIGH/CRITICAL)
 - script: |
+    set -e
     sudo apt-get update -y
-    sudo apt-get install -y wget
+    sudo apt-get install -y wget gnupg lsb-release
     wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-    echo deb https://aquasecurity.github.io/trivy-repo/deb stable main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+    echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
     sudo apt-get update -y
     sudo apt-get install -y trivy
+    # filesystem scan (repo), falha em HIGH/CRITICAL
     trivy fs --exit-code 1 --severity HIGH,CRITICAL .
   displayName: SCA (Trivy)
 
-# 6) SBOM — CycloneDX (exemplo para Python e .NET)
+# 10) Validar OpenAPI (se houver contratos em docs/apis-openapi/)
 - script: |
-    pip3 install cyclonedx-bom
-    cyclonedx-py -o sbom-python.json || true
+    npm i -g @redocly/cli
+    if ls docs/apis-openapi/**/*.y?(a)ml 1> /dev/null 2>&1; then redocly lint docs/apis-openapi/**/*.y?(a)ml; fi
+  displayName: Validate OpenAPI (Redocly CLI)
+
+# 11) Validar AsyncAPI (se houver contratos em docs/eventos-asyncapi/)
+- script: |
+    npm i -g @asyncapi/cli
+    if ls docs/eventos-asyncapi/**/*.y?(a)ml 1> /dev/null 2>&1; then asyncapi validate docs/eventos-asyncapi/**/*.y?(a)ml; fi
+  displayName: Validate AsyncAPI (AsyncAPI CLI)
+
+# 12) SBOM — CycloneDX (Python e .NET) + publicação como artefato
+- script: |
+    set -e
+    mkdir -p artifacts/sbom
+    pip install cyclonedx-bom
+    # SBOM Python (ignora se não houver projeto Python)
+    cyclonedx-py -o artifacts/sbom/sbom-python.json || true
+    # SBOM .NET
     if ls **/*.csproj 1> /dev/null 2>&1; then dotnet tool install --global CycloneDX --version 1.7.4 || true; fi
-    if ls **/*.csproj 1> /dev/null 2>&1; then ~/.dotnet/tools/dotnet-CycloneDX -o sbom-dotnet.json || true; fi
+    if ls **/*.csproj 1> /dev/null 2>&1; then ~/.dotnet/tools/dotnet-CycloneDX -o artifacts/sbom/sbom-dotnet.json || true; fi
   displayName: SBOM (CycloneDX)
+
+- task: PublishBuildArtifacts@1
+  displayName: Publicar artefatos (SBOM)
+  inputs:
+    PathtoPublish: 'artifacts/sbom'
+    ArtifactName: 'sboms'
+    publishLocation: 'Container'
+
+# 13) (Opcional) DAST — ZAP Baseline (rodar se DAST_TARGET_URL estiver definido)
+- script: |
+    if [ -n "$(DAST_TARGET_URL)" ]; then
+      docker run --rm -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t $(DAST_TARGET_URL) -I -r zap-report.html
+      test -f zap-report.html
+    else
+      echo "DAST_TARGET_URL não definido; pulando etapa DAST."
+    fi
+  displayName: DAST (OWASP ZAP) — opcional
+
+- task: PublishBuildArtifacts@1
+  condition: and(succeededOrFailed(), ne(variables.DAST_TARGET_URL, ''))
+  displayName: Publicar artefatos (ZAP)
+  inputs:
+    PathtoPublish: 'zap-report.html'
+    ArtifactName: 'zap-report'
+    publishLocation: 'Container'
